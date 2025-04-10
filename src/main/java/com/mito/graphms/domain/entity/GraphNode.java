@@ -5,8 +5,12 @@ import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.Node;
 import org.springframework.data.neo4j.core.schema.Property;
 import org.springframework.data.neo4j.core.schema.Relationship;
+import org.springframework.data.neo4j.core.support.UUIDStringGenerator;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -14,7 +18,7 @@ import java.util.Set;
 public class GraphNode implements Serializable {
 
     @Id
-    @GeneratedValue 
+    @GeneratedValue(UUIDStringGenerator.class)
     private String id;
 
     @Property("cbdb_id")
@@ -58,11 +62,19 @@ public class GraphNode implements Serializable {
 
     @Property("numberOfPlanned")
     private Integer numberOfPlanned;
+    
+    @Relationship(type = "RELATES_TO", direction = Relationship.Direction.OUTGOING)
+    @JsonIgnoreProperties("sourceNode")
+    private Set<GraphRelationship> outgoingRelations = new HashSet<>();
+    
+    @Relationship(type = "RELATES_TO", direction = Relationship.Direction.INCOMING)
+    @JsonIgnoreProperties("targetNode")
+    private Set<GraphRelationship> incomingRelations = new HashSet<>();
 
-    // Costruttori
+    // Constructors
     public GraphNode() {}
 
-    // Getter e Setter
+    // Getter and Setter methods
     public String getId() {
         return id;
     }
@@ -93,7 +105,7 @@ public class GraphNode implements Serializable {
 
     public void setItemType(String itemType) {
         this.itemType = itemType;
-        // Aggiorna automaticamente isLink quando imposti itemType
+        // Automatically update isLink when itemType is set
         this.isLink = itemType != null && itemType.contains(":LINK:");
     }
 
@@ -184,8 +196,32 @@ public class GraphNode implements Serializable {
     public void setNumberOfPlanned(Integer numberOfPlanned) {
         this.numberOfPlanned = numberOfPlanned;
     }
+    
+    public Set<GraphRelationship> getOutgoingRelations() {
+        return outgoingRelations;
+    }
 
-    // Metodi equals, hashCode e toString
+    public void setOutgoingRelations(Set<GraphRelationship> outgoingRelations) {
+        this.outgoingRelations = outgoingRelations;
+    }
+
+    public Set<GraphRelationship> getIncomingRelations() {
+        return incomingRelations;
+    }
+
+    public void setIncomingRelations(Set<GraphRelationship> incomingRelations) {
+        this.incomingRelations = incomingRelations;
+    }
+    
+    public void addOutgoingRelation(GraphRelationship relationship) {
+        this.outgoingRelations.add(relationship);
+    }
+    
+    public void addIncomingRelation(GraphRelationship relationship) {
+        this.incomingRelations.add(relationship);
+    }
+
+    // Equality methods
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

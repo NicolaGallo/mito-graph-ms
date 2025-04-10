@@ -1,7 +1,10 @@
 package com.mito.graphms.entity.service;
 
 import com.mito.graphms.domain.entity.GraphNode;
+import com.mito.graphms.domain.entity.GraphRelationship;
 import com.mito.graphms.domain.repository.GraphNodeRepository;
+import com.mito.graphms.domain.repository.GraphRelationshipRepository;
+import com.mito.graphms.dto.QueryRequest;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.Result;
@@ -9,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,21 +23,24 @@ import java.util.stream.Collectors;
 public class Neo4jDataService {
 
     private final GraphNodeRepository nodeRepository;
+    private final GraphRelationshipRepository relationshipRepository;
     private final Driver neo4jDriver;
 
     @Autowired
     public Neo4jDataService(
-        GraphNodeRepository nodeRepository, 
+        GraphNodeRepository nodeRepository,
+        GraphRelationshipRepository relationshipRepository,
         Driver neo4jDriver
     ) {
         this.nodeRepository = nodeRepository;
+        this.relationshipRepository = relationshipRepository;
         this.neo4jDriver = neo4jDriver;
     }
 
     /**
-     * Recupera tutti i nodi
+     * Retrieve all nodes
      * 
-     * @return Lista di tutti i nodi
+     * @return List of all nodes
      */
     @Transactional(readOnly = true)
     public List<GraphNode> findAllNodes() {
@@ -40,10 +48,10 @@ public class Neo4jDataService {
     }
 
     /**
-     * Trova un nodo per ID interno
+     * Find a node by internal ID
      * 
-     * @param id ID interno del nodo
-     * @return Optional del nodo
+     * @param id Internal ID of the node
+     * @return Optional node
      */
     @Transactional(readOnly = true)
     public Optional<GraphNode> findNodeById(String id) {
@@ -51,10 +59,10 @@ public class Neo4jDataService {
     }
 
     /**
-     * Trova un nodo per CBDB ID
+     * Find a node by CBDB ID
      * 
-     * @param cbdbId CBDB ID del nodo
-     * @return Optional del nodo
+     * @param cbdbId CBDB ID of the node
+     * @return Optional node
      */
     @Transactional(readOnly = true)
     public Optional<GraphNode> findNodeByCbdbId(String cbdbId) {
@@ -62,39 +70,39 @@ public class Neo4jDataService {
     }
 
     /**
-     * Crea un nuovo nodo
+     * Create a new node
      * 
-     * @param node Nodo da creare
-     * @return Nodo creato
+     * @param node Node to create
+     * @return Created node
      */
     @Transactional
     public GraphNode createNode(GraphNode node) {
-        // Imposta isLink basato sul tipo di item
+        // Set isLink based on item type
         node.setLink(node.getItemType() != null && node.getItemType().contains(":LINK:"));
         return nodeRepository.save(node);
     }
 
     /**
-     * Aggiorna un nodo esistente
+     * Update an existing node
      * 
-     * @param node Nodo da aggiornare
-     * @return Nodo aggiornato
+     * @param node Node to update
+     * @return Updated node
      */
     @Transactional
     public GraphNode updateNode(GraphNode node) {
-        // Verifica l'esistenza del nodo prima di aggiornare
+        // Verify node exists before updating
         return nodeRepository.findById(node.getId())
             .map(existingNode -> {
                 node.setLink(node.getItemType() != null && node.getItemType().contains(":LINK:"));
                 return nodeRepository.save(node);
             })
-            .orElseThrow(() -> new RuntimeException("Nodo non trovato"));
+            .orElseThrow(() -> new RuntimeException("Node not found"));
     }
 
     /**
-     * Elimina un nodo per ID
+     * Delete a node by ID
      * 
-     * @param id ID del nodo da eliminare
+     * @param id ID of the node to delete
      */
     @Transactional
     public void deleteNode(String id) {
@@ -102,9 +110,9 @@ public class Neo4jDataService {
     }
 
     /**
-     * Elimina un nodo per CBDB ID
+     * Delete a node by CBDB ID
      * 
-     * @param cbdbId CBDB ID del nodo da eliminare
+     * @param cbdbId CBDB ID of the node to delete
      */
     @Transactional
     public void deleteNodeByCbdbId(String cbdbId) {
@@ -112,10 +120,10 @@ public class Neo4jDataService {
     }
 
     /**
-     * Esegue una query Cypher personalizzata
+     * Execute a custom Cypher query
      * 
-     * @param cypherQuery Query Cypher da eseguire
-     * @return Lista di mappe contenenti i risultati
+     * @param cypherQuery Cypher query to execute
+     * @return List of maps containing the results
      */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> executeCustomQuery(String cypherQuery) {
@@ -130,20 +138,193 @@ public class Neo4jDataService {
             );
         }
     }
-
+    
     /**
-     * Crea una relazione tra due nodi
+     * Execute a custom Cypher query with parameters
      * 
-     * @param sourceCmdbId ID del nodo sorgente
-     * @param targetCmdbId ID del nodo destinazione
-     * @param relationType Tipo di relazione
+     * @param queryRequest Object containing query and parameters
+     * @return List of maps containing the results
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> executeCustomQueryWithParams(QueryRequest queryRequest) {
+        try (Session session = neo4jDriver.session()) {
+            Result result = session.run(queryRequest.getQuery(), queryRequest.getParameters());
+            
+            return result.list(record -> {
+                Map<String, Object> row = new HashMap<>();
+                for (String key : record.keys()) {
+                    row.put(key, record.get(key).asObject());
+                }
+                return row;
+            });
+        }
+    }
+
+    // ----- Relationship CRUD Operations -----
+    
+    /**
+     * Find all relationships
+     * 
+     * @return List of all relationships
+     */
+    @Transactional(readOnly = true)
+    public List<GraphRelationship> findAllRelationships() {
+        return relationshipRepository.findAll();
+    }
+    
+    /**
+     * Find a relationship by ID
+     * 
+     * @param id ID of the relationship
+     * @return Optional relationship
+     */
+    @Transactional(readOnly = true)
+    public Optional<GraphRelationship> findRelationshipById(Long id) {
+        return relationshipRepository.findById(id);
+    }
+    
+    /**
+     * Find relationships by type
+     * 
+     * @param type Type of relationship
+     * @return List of relationships
+     */
+    @Transactional(readOnly = true)
+    public List<GraphRelationship> findRelationshipsByType(String type) {
+        return relationshipRepository.findByType(type);
+    }
+    
+    /**
+     * Find relationships from a source node
+     * 
+     * @param sourceCbdbId CBDB ID of the source node
+     * @return List of relationships
+     */
+    @Transactional(readOnly = true)
+    public List<GraphRelationship> findRelationshipsFromNode(String sourceCbdbId) {
+        return relationshipRepository.findBySourceNodeCbdbId(sourceCbdbId);
+    }
+    
+    /**
+     * Find relationships to a target node
+     * 
+     * @param targetCbdbId CBDB ID of the target node
+     * @return List of relationships
+     */
+    @Transactional(readOnly = true)
+    public List<GraphRelationship> findRelationshipsToNode(String targetCbdbId) {
+        return relationshipRepository.findByTargetNodeCbdbId(targetCbdbId);
+    }
+    
+    /**
+     * Create a new relationship between nodes
+     * 
+     * @param sourceCbdbId CBDB ID of the source node
+     * @param targetCbdbId CBDB ID of the target node
+     * @param type Relationship type
+     * @return Created relationship
+     */
+    @Transactional
+    public GraphRelationship createRelationship(String sourceCbdbId, String targetCbdbId, String type) {
+        GraphNode sourceNode = nodeRepository.findByCbdbId(sourceCbdbId)
+            .orElseThrow(() -> new RuntimeException("Source node not found"));
+        
+        GraphNode targetNode = nodeRepository.findByCbdbId(targetCbdbId)
+            .orElseThrow(() -> new RuntimeException("Target node not found"));
+        
+        GraphRelationship relationship = new GraphRelationship(sourceNode, targetNode, type);
+        
+        // Add to the collections on both nodes
+        sourceNode.addOutgoingRelation(relationship);
+        targetNode.addIncomingRelation(relationship);
+        
+        return relationshipRepository.save(relationship);
+    }
+    
+    /**
+ * Create a new relationship with properties
+ * 
+ * @param sourceCbdbId CBDB ID of the source node
+ * @param targetCbdbId CBDB ID of the target node
+ * @param type Relationship type
+ * @param properties Map of properties
+ * @return Created relationship
+ */
+@Transactional
+public GraphRelationship createRelationshipWithProperties(
+    String sourceCbdbId, 
+    String targetCbdbId, 
+    String type,
+    Map<String, Object> properties
+) {
+    GraphRelationship relationship = createRelationship(sourceCbdbId, targetCbdbId, type);
+    
+    // La proprietà viene serializzata in JSON automaticamente
+    relationship.setProperties(properties);
+    
+    return relationshipRepository.save(relationship);
+}
+
+/**
+ * Update a relationship
+ * 
+ * @param relationship Relationship to update
+ * @return Updated relationship
+ */
+@Transactional
+public GraphRelationship updateRelationship(GraphRelationship relationship) {
+    if (relationship.getId() == null) {
+        throw new IllegalArgumentException("Relationship ID cannot be null for update operation");
+    }
+    
+    return relationshipRepository.findById(relationship.getId())
+        .map(existingRel -> {
+            // Keep the original nodes and update the rest
+            relationship.setSourceNode(existingRel.getSourceNode());
+            relationship.setTargetNode(existingRel.getTargetNode());
+            relationship.updateTimestamp();
+            
+            return relationshipRepository.save(relationship);
+        })
+        .orElseThrow(() -> new RuntimeException("Relationship not found with id: " + relationship.getId()));
+}
+    
+    /**
+     * Delete a relationship by ID
+     * 
+     * @param id ID of the relationship to delete
+     */
+    @Transactional
+    public void deleteRelationship(Long id) {
+        relationshipRepository.deleteById(id);
+    }
+    
+    /**
+     * Delete a relationship between two nodes
+     * 
+     * @param sourceCbdbId CBDB ID of the source node
+     * @param targetCbdbId CBDB ID of the target node
+     * @param type Relationship type
+     */
+    @Transactional
+    public void deleteRelationshipByNodes(String sourceCbdbId, String targetCbdbId, String type) {
+        relationshipRepository.deleteBySourceAndTargetAndType(sourceCbdbId, targetCbdbId, type);
+    }
+    
+    /**
+     * Legacy method - creates a relationship between two nodes
+     * Use createRelationship instead for new code
+     * 
+     * @param sourceCmdbId CMDB ID of the source node
+     * @param targetCmdbId CMDB ID of the target node
+     * @param relationType Relationship type
      */
     @Transactional
     public void createRelation(String sourceCmdbId, String targetCmdbId, String relationType) {
         try (Session session = neo4jDriver.session()) {
             session.run(
-                "MATCH (a:ITEM {cmdb_id: $sourceCmdbId}) " +
-                "MATCH (b:ITEM {cmdb_id: $targetCmdbId}) " +
+                "MATCH (a:ITEM {cbdb_id: $sourceCmdbId}) " +
+                "MATCH (b:ITEM {cbdb_id: $targetCmdbId}) " +
                 "MERGE (a)-[r:" + relationType + "]->(b) " +
                 "RETURN count(*)",
                 Map.of(
@@ -153,4 +334,6 @@ public class Neo4jDataService {
             );
         }
     }
+
+    
 }

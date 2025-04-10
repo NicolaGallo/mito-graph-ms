@@ -1,0 +1,1238 @@
+{
+	"info": {
+		"_postman_id": "e7828ab9-2783-4678-a461-8d17c0a138c1",
+		"name": "Mito Graph Microservice",
+		"description": "Postman Collection for Mito Graph Microservice API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "462358"
+	},
+	"item": [
+		{
+			"name": "Node Management",
+			"item": [
+				{
+					"name": "Get All Nodes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Node",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate unique identifiers",
+									"const randomString = Math.random().toString(36).substring(2, 10);",
+									"pm.environment.set(\"unique_node_name\", `Test Node ${randomString}`);",
+									"pm.environment.set(\"unique_cbdb_id\", `NODE_${randomString.toUpperCase()}`)"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Node created successfully\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('object');",
+									"    pm.expect(jsonResponse.name).to.equal(pm.environment.get(\"unique_node_name\"));",
+									"    pm.expect(jsonResponse.cbdbId).to.equal(pm.environment.get(\"unique_cbdb_id\"));",
+									"    pm.expect(jsonResponse.id).to.not.be.null;",
+									"});",
+									"",
+									"// Save node details for further operations",
+									"const jsonResponse = pm.response.json();",
+									"pm.environment.set(\"nodeId\", jsonResponse.id);",
+									"pm.environment.set(\"cbdbId\", jsonResponse.cbdbId);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cbdbId\": \"{{unique_cbdb_id}}\",\n    \"name\": \"{{unique_node_name}}\",\n    \"itemType\": \"{{default_item_type}}\",\n    \"importance\": \"{{default_importance}}\",\n    \"status\": \"ACTIVE\",\n    \"locationLat\": 45.4642,\n    \"locationLon\": 9.1900,\n    \"itemIcon\": \"default-icon\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Source Node",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate unique identifiers",
+									"const randomString = Math.random().toString(36).substring(2, 10);",
+									"pm.environment.set(\"source_node_name\", `Source Node ${randomString}`);",
+									"pm.environment.set(\"source_cbdb_id\", `SOURCE_${randomString.toUpperCase()}`)"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Node created successfully\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('object');",
+									"    pm.expect(jsonResponse.name).to.equal(pm.environment.get(\"source_node_name\"));",
+									"    pm.expect(jsonResponse.cbdbId).to.equal(pm.environment.get(\"source_cbdb_id\"));",
+									"});",
+									"",
+									"// Save source node details for relationship creation",
+									"const jsonResponse = pm.response.json();",
+									"pm.environment.set(\"source_node_id\", jsonResponse.id);",
+									"pm.environment.set(\"source_cbdb_id\", jsonResponse.cbdbId);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cbdbId\": \"{{source_cbdb_id}}\",\n    \"name\": \"{{source_node_name}}\",\n    \"itemType\": \"SOURCE:TYPE\",\n    \"importance\": \"HIGH\",\n    \"status\": \"ACTIVE\",\n    \"locationLat\": 41.9028,\n    \"locationLon\": 12.4964,\n    \"itemIcon\": \"source-icon\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Target Node",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate unique identifiers",
+									"const randomString = Math.random().toString(36).substring(2, 10);",
+									"pm.environment.set(\"target_node_name\", `Target Node ${randomString}`);",
+									"pm.environment.set(\"target_cbdb_id\", `TARGET_${randomString.toUpperCase()}`)"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Node created successfully\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('object');",
+									"    pm.expect(jsonResponse.name).to.equal(pm.environment.get(\"target_node_name\"));",
+									"    pm.expect(jsonResponse.cbdbId).to.equal(pm.environment.get(\"target_cbdb_id\"));",
+									"});",
+									"",
+									"// Save target node details for relationship creation",
+									"const jsonResponse = pm.response.json();",
+									"pm.environment.set(\"target_node_id\", jsonResponse.id);",
+									"pm.environment.set(\"target_cbdb_id\", jsonResponse.cbdbId);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cbdbId\": \"{{target_cbdb_id}}\",\n    \"name\": \"{{target_node_name}}\",\n    \"itemType\": \"TARGET:TYPE\",\n    \"importance\": \"MEDIUM\",\n    \"status\": \"ACTIVE\",\n    \"locationLat\": 48.8566,\n    \"locationLon\": 2.3522,\n    \"itemIcon\": \"target-icon\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Node by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Correct node retrieved\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse.id).to.equal(pm.environment.get(\"nodeId\"));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodes/{{nodeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodes",
+								"{{nodeId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Node by CBDB ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Correct node retrieved\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse.cbdbId).to.equal(pm.environment.get(\"cbdbId\"));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodes/cbdb/{{cbdbId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodes",
+								"cbdb",
+								"{{cbdbId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Node",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const randomUpdate = Math.random().toString(36).substring(2, 10);",
+									"pm.environment.set(\"updated_name\", `Updated Node ${randomUpdate}`);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Node updated successfully\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse.name).to.equal(pm.environment.get(\"updated_name\"));",
+									"    pm.expect(jsonResponse.importance).to.equal('HIGH');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cbdbId\": \"{{cbdbId}}\",\n    \"name\": \"{{updated_name}}\",\n    \"importance\": \"HIGH\",\n    \"status\": \"UPDATED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodes/{{nodeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodes",
+								"{{nodeId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Node",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodes/{{nodeId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodes",
+								"{{nodeId}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Relationship Management",
+			"item": [
+				{
+					"name": "Create Relationship",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Relationship created successfully\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('object');",
+									"    pm.expect(jsonResponse.id).to.not.be.null;",
+									"    pm.expect(jsonResponse.type).to.equal('CONNECTS_TO');",
+									"});",
+									"",
+									"// Save relationship ID for further operations",
+									"const jsonResponse = pm.response.json();",
+									"pm.environment.set(\"relationship_id\", jsonResponse.id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/relationships?sourceCbdbId={{source_cbdb_id}}&targetCbdbId={{target_cbdb_id}}&type=CONNECTS_TO",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"relationships"
+							],
+							"query": [
+								{
+									"key": "sourceCbdbId",
+									"value": "{{source_cbdb_id}}"
+								},
+								{
+									"key": "targetCbdbId",
+									"value": "{{target_cbdb_id}}"
+								},
+								{
+									"key": "type",
+									"value": "CONNECTS_TO"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Relationship with Properties",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Relationship with properties created successfully\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('object');",
+									"    pm.expect(jsonResponse.id).to.not.be.null;",
+									"    pm.expect(jsonResponse.type).to.equal('DEPENDS_ON');",
+									"    pm.expect(jsonResponse.properties).to.be.an('object');",
+									"    pm.expect(jsonResponse.properties.weight).to.equal(5);",
+									"});",
+									"",
+									"// Save relationship ID for further operations",
+									"const jsonResponse = pm.response.json();",
+									"pm.environment.set(\"rel_with_props_id\", jsonResponse.id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"weight\": 5,\n    \"description\": \"This is a dependency relationship\",\n    \"critical\": true,\n    \"priority\": \"HIGH\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/relationships/with-properties?sourceCbdbId={{source_cbdb_id}}&targetCbdbId={{target_cbdb_id}}&type=DEPENDS_ON",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"relationships",
+								"with-properties"
+							],
+							"query": [
+								{
+									"key": "sourceCbdbId",
+									"value": "{{source_cbdb_id}}"
+								},
+								{
+									"key": "targetCbdbId",
+									"value": "{{target_cbdb_id}}"
+								},
+								{
+									"key": "type",
+									"value": "DEPENDS_ON"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Relationships",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/relationships",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"relationships"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Relationship by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Correct relationship retrieved\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse.id).to.equal(pm.environment.get(\"relationship_id\"));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/relationships/{{relationship_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"relationships",
+								"{{relationship_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Relationships by Type",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array with CONNECTS_TO relationships\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('array');",
+									"    ",
+									"    if (jsonResponse.length > 0) {",
+									"        jsonResponse.forEach(function(rel) {",
+									"            pm.expect(rel.type).to.equal('CONNECTS_TO');",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/relationships/by-type/CONNECTS_TO",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"relationships",
+								"by-type",
+								"CONNECTS_TO"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Relationships From Node",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array with relationships\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('array');",
+									"    ",
+									"    if (jsonResponse.length > 0) {",
+									"        jsonResponse.forEach(function(rel) {",
+									"            pm.expect(rel.sourceNode.cbdbId).to.equal(pm.environment.get(\"source_cbdb_id\"));",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/relationships/from/{{source_cbdb_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"relationships",
+								"from",
+								"{{source_cbdb_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Relationships To Node",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array with relationships\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('array');",
+									"    ",
+									"    if (jsonResponse.length > 0) {",
+									"        jsonResponse.forEach(function(rel) {",
+									"            pm.expect(rel.targetNode.cbdbId).to.equal(pm.environment.get(\"target_cbdb_id\"));",
+									"        });",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/relationships/to/{{target_cbdb_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"relationships",
+								"to",
+								"{{target_cbdb_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Relationship",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Relationship updated successfully\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse.id).to.equal(pm.environment.get(\"rel_with_props_id\"));",
+									"    pm.expect(jsonResponse.properties.weight).to.equal(10);",
+									"    pm.expect(jsonResponse.properties.description).to.equal(\"Updated description\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"DEPENDS_ON\",\n    \"properties\": {\n        \"weight\": 10,\n        \"description\": \"Updated description\",\n        \"critical\": true,\n        \"priority\": \"URGENT\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/relationships/{{rel_with_props_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"relationships",
+								"{{rel_with_props_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Relationship by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/relationships/{{rel_with_props_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"relationships",
+								"{{rel_with_props_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Relationship Between Nodes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/relationships?sourceCbdbId={{source_cbdb_id}}&targetCbdbId={{target_cbdb_id}}&type=CONNECTS_TO",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"relationships"
+							],
+							"query": [
+								{
+									"key": "sourceCbdbId",
+									"value": "{{source_cbdb_id}}"
+								},
+								{
+									"key": "targetCbdbId",
+									"value": "{{target_cbdb_id}}"
+								},
+								{
+									"key": "type",
+									"value": "CONNECTS_TO"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Legacy Create Relationship",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodes/relation?sourceCmdbId={{source_cbdb_id}}&targetCmdbId={{target_cbdb_id}}&relationType=LEGACY_CONNECTION",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodes",
+								"relation"
+							],
+							"query": [
+								{
+									"key": "sourceCmdbId",
+									"value": "{{source_cbdb_id}}"
+								},
+								{
+									"key": "targetCmdbId",
+									"value": "{{target_cbdb_id}}"
+								},
+								{
+									"key": "relationType",
+									"value": "LEGACY_CONNECTION"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Query Management",
+			"item": [
+				{
+					"name": "Execute Custom Cypher Query (JSON)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"MATCH (n:ITEM) WHERE n.cbdb_id = $cbdbId RETURN n.name as name, n.cbdb_id as cbdbId, n.itemType as itemType\",\n    \"parameters\": {\n        \"cbdbId\": \"{{source_cbdb_id}}\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Find Connections Query (JSON)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"MATCH (source:ITEM)-[r]->(target:ITEM) WHERE source.cbdb_id = $sourceCbdbId RETURN source.name as sourceName, type(r) as relationType, target.name as targetName\",\n    \"parameters\": {\n        \"sourceCbdbId\": \"{{source_cbdb_id}}\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Complex Path Query (JSON)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"MATCH path = (source:ITEM)-[*1..3]->(target:ITEM) WHERE source.cbdb_id = $sourceCbdbId AND target.cbdb_id = $targetCbdbId RETURN nodes(path) as nodes, relationships(path) as relationships\",\n    \"parameters\": {\n        \"sourceCbdbId\": \"{{source_cbdb_id}}\",\n        \"targetCbdbId\": \"{{target_cbdb_id}}\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/query",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"query"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Execute Custom Cypher Query (Text)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    const jsonResponse = pm.response.json();",
+									"    pm.expect(jsonResponse).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "text/plain"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "MATCH (n:ITEM) RETURN n.name, n.cbdb_id LIMIT 10"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/query/text",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"query",
+								"text"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Cleanup",
+			"item": [
+				{
+					"name": "Delete Source Node",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodes/cbdb/{{source_cbdb_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodes",
+								"cbdb",
+								"{{source_cbdb_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Target Node",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/nodes/cbdb/{{target_cbdb_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"nodes",
+								"cbdb",
+								"{{target_cbdb_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "api_version",
+			"value": "v1",
+			"type": "string"
+		},
+		{
+			"key": "default_item_type",
+			"value": "SERVER",
+			"type": "string"
+		},
+		{
+			"key": "default_importance",
+			"value": "MEDIUM",
+			"type": "string"
+		}
+	]
+}

@@ -1,7 +1,10 @@
+com/mito/graphms/domain/repository/GraphRelationshipRepository.class
 com/mito/graphms/configuration/OpenApiConfig.class
+com/mito/graphms/dto/QueryRequest.class
 com/mito/graphms/entity/service/Neo4jDataService.class
 com/mito/graphms/domain/entity/GraphNode.class
 com/mito/graphms/application/api/GraphNodeController.class
+com/mito/graphms/domain/entity/GraphRelationship.class
 com/mito/graphms/configuration/Neo4jConfiguration.class
 com/mito/graphms/GraphMsApplication.class
 com/mito/graphms/domain/repository/GraphNodeRepository.class
