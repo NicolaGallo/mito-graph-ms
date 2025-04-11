@@ -83,7 +83,12 @@ public class Neo4jDataService {
     public GraphNode createNode(GraphNode node) {
         // Set isLink based on item type
         node.setLink(node.getItemType() != null && node.getItemType().contains(":LINK:"));
-        return nodeRepository.save(node);
+        
+        // Save the node to get the generated ID
+        GraphNode savedNode = nodeRepository.save(node);
+        
+        // To ensure we return a complete object with all properties and generated ID
+        return nodeRepository.findById(savedNode.getId()).orElse(savedNode);
     }
 
     /**
@@ -97,10 +102,16 @@ public class Neo4jDataService {
         // Verify node exists before updating
         return nodeRepository.findById(node.getId())
             .map(existingNode -> {
+                // Preserve original ID and set isLink based on item type
                 node.setLink(node.getItemType() != null && node.getItemType().contains(":LINK:"));
-                return nodeRepository.save(node);
+                
+                // Save the node with updates
+                GraphNode updatedNode = nodeRepository.save(node);
+                
+                // Ensure we return the complete updated object
+                return nodeRepository.findById(updatedNode.getId()).orElse(updatedNode);
             })
-            .orElseThrow(() -> new RuntimeException("Node not found"));
+            .orElseThrow(() -> new RuntimeException("Node not found with id: " + node.getId()));
     }
 
     /**
@@ -236,7 +247,12 @@ public class Neo4jDataService {
         
         GraphRelationship relationship = new GraphRelationship(sourceNode, targetNode, type);
         
-        return relationshipRepository.save(relationship);
+        // Save the relationship to generate ID
+        GraphRelationship savedRelationship = relationshipRepository.save(relationship);
+        
+        // Ensure we return the complete saved entity with ID
+        return relationshipRepository.findById(savedRelationship.getId())
+            .orElse(savedRelationship);
     }
 
     /**
@@ -258,7 +274,11 @@ public class Neo4jDataService {
                 relationship.setTargetNode(existingRel.getTargetNode());
                 relationship.updateTimestamp();
                 
-                return relationshipRepository.save(relationship);
+                GraphRelationship updatedRelationship = relationshipRepository.save(relationship);
+                
+                // Ensure we return the complete updated entity
+                return relationshipRepository.findById(updatedRelationship.getId())
+                    .orElse(updatedRelationship);
             })
             .orElseThrow(() -> new RuntimeException("Relationship not found with id: " + relationship.getId()));
     }

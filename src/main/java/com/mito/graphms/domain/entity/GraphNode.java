@@ -227,12 +227,12 @@ public class GraphNode implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         GraphNode graphNode = (GraphNode) o;
-        return Objects.equals(cbdbId, graphNode.cbdbId);
+        return Objects.equals(id, graphNode.id) || Objects.equals(cbdbId, graphNode.cbdbId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cbdbId);
+        return Objects.hash(id, cbdbId);
     }
 
     @Override

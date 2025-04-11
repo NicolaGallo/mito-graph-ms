@@ -5,11 +5,12 @@ import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.RelationshipProperties;
 import org.springframework.data.neo4j.core.schema.TargetNode;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 @RelationshipProperties
@@ -28,7 +29,7 @@ public class GraphRelationship implements Serializable {
     @JsonIgnoreProperties({"outgoingRelations", "incomingRelations"})
     private GraphNode sourceNode;
     
-    // Proprietà singole invece di una mappa
+    // Singular properties for the relationship
     private Integer weight;
     private String description;
     private Boolean active;
@@ -132,6 +133,16 @@ public class GraphRelationship implements Serializable {
     
     public void updateTimestamp() {
         this.updatedAt = LocalDateTime.now();
+    }
+    
+    // Convenience method to access properties as a map (for compatibility)
+    public Map<String, Object> getProperties() {
+        Map<String, Object> properties = new HashMap<>();
+        if (weight != null) properties.put("weight", weight);
+        if (description != null) properties.put("description", description);
+        if (active != null) properties.put("active", active);
+        if (priority != null) properties.put("priority", priority);
+        return properties;
     }
 
     @Override
