@@ -7,19 +7,13 @@ import org.springframework.data.neo4j.core.schema.TargetNode;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 @RelationshipProperties
 public class GraphRelationship implements Serializable {
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Id
     @GeneratedValue
@@ -34,21 +28,18 @@ public class GraphRelationship implements Serializable {
     @JsonIgnoreProperties({"outgoingRelations", "incomingRelations"})
     private GraphNode sourceNode;
     
-    // Questo campo viene serializzato come JSON e memorizzato come stringa in Neo4j
-    private String propertiesJson = "{}";
+    // Proprietà singole invece di una mappa
+    private Integer weight;
+    private String description;
+    private Boolean active;
+    private String priority;
     
     private LocalDateTime createdAt;
-    
     private LocalDateTime updatedAt;
-    
-    // Questo campo è transiente e non viene salvato in Neo4j
-    @JsonIgnore
-    private transient Map<String, Object> propertiesCache;
     
     public GraphRelationship() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        this.propertiesCache = new HashMap<>();
     }
     
     public GraphRelationship(GraphNode sourceNode, GraphNode targetNode, String type) {
@@ -57,7 +48,6 @@ public class GraphRelationship implements Serializable {
         this.type = type;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        this.propertiesCache = new HashMap<>();
     }
 
     public Long getId() {
@@ -92,47 +82,36 @@ public class GraphRelationship implements Serializable {
         this.sourceNode = sourceNode;
     }
 
-    public String getPropertiesJson() {
-        return propertiesJson;
+    public Integer getWeight() {
+        return weight;
     }
 
-    public void setPropertiesJson(String propertiesJson) {
-        this.propertiesJson = propertiesJson;
-        // Invalida la cache quando si imposta direttamente il JSON
-        this.propertiesCache = null;
+    public void setWeight(Integer weight) {
+        this.weight = weight;
     }
 
-    @JsonIgnore
-    public Map<String, Object> getProperties() {
-        if (propertiesCache == null) {
-            try {
-                propertiesCache = objectMapper.readValue(propertiesJson, 
-                    objectMapper.getTypeFactory().constructMapType(HashMap.class, String.class, Object.class));
-            } catch (JsonProcessingException e) {
-                propertiesCache = new HashMap<>();
-            }
-        }
-        return propertiesCache;
+    public String getDescription() {
+        return description;
     }
 
-    @JsonIgnore
-    public void setProperties(Map<String, Object> properties) {
-        this.propertiesCache = properties;
-        try {
-            this.propertiesJson = objectMapper.writeValueAsString(properties);
-        } catch (JsonProcessingException e) {
-            this.propertiesJson = "{}";
-        }
+    public void setDescription(String description) {
+        this.description = description;
     }
-    
-    public Object getProperty(String key) {
-        return getProperties().get(key);
+
+    public Boolean getActive() {
+        return active;
     }
-    
-    public void setProperty(String key, Object value) {
-        Map<String, Object> props = getProperties();
-        props.put(key, value);
-        setProperties(props);
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    public void setPriority(String priority) {
+        this.priority = priority;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -175,7 +154,9 @@ public class GraphRelationship implements Serializable {
                 ", type='" + type + '\'' +
                 ", source='" + (sourceNode != null ? sourceNode.getCbdbId() : "null") + '\'' +
                 ", target='" + (targetNode != null ? targetNode.getCbdbId() : "null") + '\'' +
-                ", properties=" + getProperties() +
+                ", weight=" + weight +
+                ", description='" + description + '\'' +
+                ", active=" + active +
                 '}';
     }
 }

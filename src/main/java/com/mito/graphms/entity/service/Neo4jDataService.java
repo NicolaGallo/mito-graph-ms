@@ -9,6 +9,7 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.Result;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.neo4j.core.Neo4jTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,16 +26,19 @@ public class Neo4jDataService {
     private final GraphNodeRepository nodeRepository;
     private final GraphRelationshipRepository relationshipRepository;
     private final Driver neo4jDriver;
+    private final Neo4jTemplate neo4jTemplate;
 
     @Autowired
     public Neo4jDataService(
         GraphNodeRepository nodeRepository,
         GraphRelationshipRepository relationshipRepository,
-        Driver neo4jDriver
+        Driver neo4jDriver,
+        Neo4jTemplate neo4jTemplate
     ) {
         this.nodeRepository = nodeRepository;
         this.relationshipRepository = relationshipRepository;
         this.neo4jDriver = neo4jDriver;
+        this.neo4jTemplate = neo4jTemplate;
     }
 
     /**
@@ -66,7 +70,17 @@ public class Neo4jDataService {
      */
     @Transactional(readOnly = true)
     public Optional<GraphNode> findNodeByCbdbId(String cbdbId) {
-        return nodeRepository.findByCbdbId(cbdbId);
+        // Assicuriamoci di restituire un solo risultato
+        List<GraphNode> nodes = nodeRepository.findAll()
+            .stream()
+            .filter(n -> cbdbId.equals(n.getCbdbId()))
+            .collect(Collectors.toList());
+        
+        if (nodes.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(nodes.get(0));
+        }
     }
 
     /**
@@ -125,7 +139,6 @@ public class Neo4jDataService {
      * @param cypherQuery Cypher query to execute
      * @return List of maps containing the results
      */
-    @Transactional(readOnly = true)
     public List<Map<String, Object>> executeCustomQuery(String cypherQuery) {
         try (Session session = neo4jDriver.session()) {
             Result result = session.run(cypherQuery);
@@ -145,7 +158,6 @@ public class Neo4jDataService {
      * @param queryRequest Object containing query and parameters
      * @return List of maps containing the results
      */
-    @Transactional(readOnly = true)
     public List<Map<String, Object>> executeCustomQueryWithParams(QueryRequest queryRequest) {
         try (Session session = neo4jDriver.session()) {
             Result result = session.run(queryRequest.getQuery(), queryRequest.getParameters());
@@ -226,68 +238,134 @@ public class Neo4jDataService {
      */
     @Transactional
     public GraphRelationship createRelationship(String sourceCbdbId, String targetCbdbId, String type) {
-        GraphNode sourceNode = nodeRepository.findByCbdbId(sourceCbdbId)
-            .orElseThrow(() -> new RuntimeException("Source node not found"));
-        
-        GraphNode targetNode = nodeRepository.findByCbdbId(targetCbdbId)
-            .orElseThrow(() -> new RuntimeException("Target node not found"));
-        
-        GraphRelationship relationship = new GraphRelationship(sourceNode, targetNode, type);
-        
-        // Add to the collections on both nodes
-        sourceNode.addOutgoingRelation(relationship);
-        targetNode.addIncomingRelation(relationship);
-        
-        return relationshipRepository.save(relationship);
+        // Utilizziamo direttamente il driver Cypher
+        try (Session session = neo4jDriver.session()) {
+            // Creiamo la relazione
+            String cypher = "MATCH (source:ITEM {cbdb_id: $sourceCbdbId}), " +
+                            "(target:ITEM {cbdb_id: $targetCbdbId}) " +
+                            "CREATE (source)-[r:" + type + "]->(target) " +
+                            "RETURN id(r) as relId";
+            
+            Map<String, Object> params = new HashMap<>();
+            params.put("sourceCbdbId", sourceCbdbId);
+            params.put("targetCbdbId", targetCbdbId);
+            
+            Result result = session.run(cypher, params);
+            if (result.hasNext()) {
+                GraphNode sourceNode = nodeRepository.findByCbdbId(sourceCbdbId).orElseThrow();
+                GraphNode targetNode = nodeRepository.findByCbdbId(targetCbdbId).orElseThrow();
+                
+                GraphRelationship relationship = new GraphRelationship(sourceNode, targetNode, type);
+                return relationship;  // Non salviamo nel repository, ma restituiamo solo l'oggetto
+            }
+            
+            throw new RuntimeException("Failed to create relationship");
+        }
     }
     
     /**
- * Create a new relationship with properties
- * 
- * @param sourceCbdbId CBDB ID of the source node
- * @param targetCbdbId CBDB ID of the target node
- * @param type Relationship type
- * @param properties Map of properties
- * @return Created relationship
- */
-@Transactional
-public GraphRelationship createRelationshipWithProperties(
-    String sourceCbdbId, 
-    String targetCbdbId, 
-    String type,
-    Map<String, Object> properties
-) {
-    GraphRelationship relationship = createRelationship(sourceCbdbId, targetCbdbId, type);
-    
-    // La proprietà viene serializzata in JSON automaticamente
-    relationship.setProperties(properties);
-    
-    return relationshipRepository.save(relationship);
-}
-
-/**
- * Update a relationship
- * 
- * @param relationship Relationship to update
- * @return Updated relationship
- */
-@Transactional
-public GraphRelationship updateRelationship(GraphRelationship relationship) {
-    if (relationship.getId() == null) {
-        throw new IllegalArgumentException("Relationship ID cannot be null for update operation");
-    }
-    
-    return relationshipRepository.findById(relationship.getId())
-        .map(existingRel -> {
-            // Keep the original nodes and update the rest
-            relationship.setSourceNode(existingRel.getSourceNode());
-            relationship.setTargetNode(existingRel.getTargetNode());
-            relationship.updateTimestamp();
+     * Create a new relationship with properties
+     * 
+     * @param sourceCbdbId CBDB ID of the source node
+     * @param targetCbdbId CBDB ID of the target node
+     * @param type Relationship type
+     * @param properties Map of properties
+     * @return Created relationship
+     */
+    @Transactional
+    public GraphRelationship createRelationshipWithProperties(
+        String sourceCbdbId, 
+        String targetCbdbId, 
+        String type,
+        Map<String, Object> properties
+    ) {
+        try (Session session = neo4jDriver.session()) {
+            // Prima assicuriamoci che i nodi esistano
+            boolean sourceExists = nodeRepository.existsByCbdbId(sourceCbdbId);
+            boolean targetExists = nodeRepository.existsByCbdbId(targetCbdbId);
             
-            return relationshipRepository.save(relationship);
-        })
-        .orElseThrow(() -> new RuntimeException("Relationship not found with id: " + relationship.getId()));
-}
+            if (!sourceExists || !targetExists) {
+                throw new RuntimeException("Source or target node not found");
+            }
+            
+            // Costruiamo la query Cypher
+            StringBuilder cypher = new StringBuilder();
+            cypher.append("MATCH (source:ITEM {cbdb_id: $sourceCbdbId}), ");
+            cypher.append("(target:ITEM {cbdb_id: $targetCbdbId}) ");
+            cypher.append("CREATE (source)-[r:" + type + " {");
+            
+            // Aggiungiamo le proprietà una ad una
+            int i = 0;
+            for (String key : properties.keySet()) {
+                if (i > 0) cypher.append(", ");
+                cypher.append(key).append(": $").append(key);
+                i++;
+            }
+            
+            cypher.append("}]->(target) ");
+            cypher.append("RETURN id(r) as relId");
+            
+            // Eseguiamo la query con i parametri
+            Map<String, Object> params = new HashMap<>();
+            params.put("sourceCbdbId", sourceCbdbId);
+            params.put("targetCbdbId", targetCbdbId);
+            
+            // Aggiungiamo le proprietà ai parametri
+            params.putAll(properties);
+            
+            // Eseguiamo la query
+            Result result = session.run(cypher.toString(), params);
+            
+            if (result.hasNext()) {
+                GraphNode sourceNode = nodeRepository.findByCbdbId(sourceCbdbId).orElseThrow();
+                GraphNode targetNode = nodeRepository.findByCbdbId(targetCbdbId).orElseThrow();
+                
+                GraphRelationship relationship = new GraphRelationship(sourceNode, targetNode, type);
+                
+                // Settiamo le proprietà singolarmente
+                if (properties.containsKey("weight")) {
+                    relationship.setWeight(((Number) properties.get("weight")).intValue());
+                }
+                if (properties.containsKey("description")) {
+                    relationship.setDescription((String) properties.get("description"));
+                }
+                if (properties.containsKey("active")) {
+                    relationship.setActive((Boolean) properties.get("active"));
+                }
+                if (properties.containsKey("priority")) {
+                    relationship.setPriority((String) properties.get("priority"));
+                }
+                
+                return relationship;  // Non salviamo nel repository, ma restituiamo solo l'oggetto
+            }
+            
+            throw new RuntimeException("Failed to create relationship with properties");
+        }
+    }
+
+    /**
+     * Update a relationship
+     * 
+     * @param relationship Relationship to update
+     * @return Updated relationship
+     */
+    @Transactional
+    public GraphRelationship updateRelationship(GraphRelationship relationship) {
+        if (relationship.getId() == null) {
+            throw new IllegalArgumentException("Relationship ID cannot be null for update operation");
+        }
+        
+        return relationshipRepository.findById(relationship.getId())
+            .map(existingRel -> {
+                // Keep the original nodes and update the rest
+                relationship.setSourceNode(existingRel.getSourceNode());
+                relationship.setTargetNode(existingRel.getTargetNode());
+                relationship.updateTimestamp();
+                
+                return relationshipRepository.save(relationship);
+            })
+            .orElseThrow(() -> new RuntimeException("Relationship not found with id: " + relationship.getId()));
+    }
     
     /**
      * Delete a relationship by ID
@@ -308,7 +386,16 @@ public GraphRelationship updateRelationship(GraphRelationship relationship) {
      */
     @Transactional
     public void deleteRelationshipByNodes(String sourceCbdbId, String targetCbdbId, String type) {
-        relationshipRepository.deleteBySourceAndTargetAndType(sourceCbdbId, targetCbdbId, type);
+        try (Session session = neo4jDriver.session()) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("sourceCbdbId", sourceCbdbId);
+            params.put("targetCbdbId", targetCbdbId);
+            
+            session.run(
+                "MATCH (s:ITEM {cbdb_id: $sourceCbdbId})-[r:" + type + "]->(t:ITEM {cbdb_id: $targetCbdbId}) DELETE r",
+                params
+            );
+        }
     }
     
     /**
@@ -334,6 +421,4 @@ public GraphRelationship updateRelationship(GraphRelationship relationship) {
             );
         }
     }
-
-    
 }

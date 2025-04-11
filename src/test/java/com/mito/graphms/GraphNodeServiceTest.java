@@ -33,6 +33,15 @@ public class GraphNodeServiceTest {
         testNode.setStatus("ACTIVE");
         testNode.setLocationLat(45.4642);
         testNode.setLocationLon(9.1900);
+        
+        // Assicuriamoci che non ci siano dati di test residui
+        try {
+            neo4jDataService.deleteNodeByCbdbId("TEST_NODE_001");
+            neo4jDataService.deleteNodeByCbdbId("SOURCE_NODE_001");
+            neo4jDataService.deleteNodeByCbdbId("TARGET_NODE_001");
+        } catch (Exception e) {
+            // Ignoriamo le eccezioni se i nodi non esistono
+        }
     }
 
     @Test
@@ -44,6 +53,9 @@ public class GraphNodeServiceTest {
         assertNotNull(createdNode, "Il nodo creato non dovrebbe essere nullo");
         assertEquals("TEST_NODE_001", createdNode.getCbdbId(), "CBDB ID dovrebbe corrispondere");
         assertTrue(createdNode.getId() != null, "Dovrebbe essere generato un ID interno");
+        
+        // Pulizia
+        neo4jDataService.deleteNodeByCbdbId("TEST_NODE_001");
     }
 
     @Test
@@ -57,6 +69,9 @@ public class GraphNodeServiceTest {
         
         assertTrue(foundNode.isPresent(), "Nodo dovrebbe essere trovato");
         assertEquals("Nodo di Test", foundNode.get().getName(), "Nome del nodo dovrebbe corrispondere");
+        
+        // Pulizia
+        neo4jDataService.deleteNodeByCbdbId("TEST_NODE_001");
     }
 
     @Test
@@ -74,6 +89,9 @@ public class GraphNodeServiceTest {
         
         assertEquals("Nodo Aggiornato", updatedNode.getName(), "Nome dovrebbe essere aggiornato");
         assertEquals("HIGH", updatedNode.getImportance(), "Importanza dovrebbe essere aggiornata");
+        
+        // Pulizia
+        neo4jDataService.deleteNodeByCbdbId("TEST_NODE_001");
     }
 
     @Test
@@ -106,6 +124,10 @@ public class GraphNodeServiceTest {
         List<GraphNode> allNodes = neo4jDataService.findAllNodes();
         
         assertTrue(allNodes.size() >= 2, "Dovrebbero essere presenti almeno due nodi");
+        
+        // Pulizia
+        neo4jDataService.deleteNodeByCbdbId("TEST_NODE_001");
+        neo4jDataService.deleteNodeByCbdbId("TEST_NODE_002");
     }
 
     @Test
@@ -122,6 +144,9 @@ public class GraphNodeServiceTest {
         assertFalse(queryResults.isEmpty(), "La query dovrebbe restituire risultati");
         assertEquals("Nodo di Test", queryResults.get(0).get("name"), "Nome del nodo dovrebbe corrispondere");
         assertEquals("TEST_NODE_001", queryResults.get(0).get("cbdbId"), "CBDB ID dovrebbe corrispondere");
+        
+        // Pulizia
+        neo4jDataService.deleteNodeByCbdbId("TEST_NODE_001");
     }
 
     @Test
@@ -145,12 +170,16 @@ public class GraphNodeServiceTest {
             "CONNECTS_TO"
         );
         
-        // Verifica la relazione (potrebbe richiedere una query Cypher specifica)
-        String verifyQuery = "MATCH (a:ITEM {cmdb_id: 'SOURCE_NODE_001'})-[r:CONNECTS_TO]->(b:ITEM {cmdb_id: 'TARGET_NODE_001'}) RETURN count(r) as relationCount";
+        // Verifica la relazione con una query Cypher specifica
+        String verifyQuery = "MATCH (a:ITEM {cbdb_id: 'SOURCE_NODE_001'})-[r:CONNECTS_TO]->(b:ITEM {cbdb_id: 'TARGET_NODE_001'}) RETURN count(r) as relationCount";
         
         List<Map<String, Object>> relationResults = neo4jDataService.executeCustomQuery(verifyQuery);
         
         assertFalse(relationResults.isEmpty(), "Dovrebbe esistere una relazione");
         assertEquals(1L, relationResults.get(0).get("relationCount"), "Dovrebbe esistere esattamente una relazione");
+        
+        // Pulizia
+        neo4jDataService.deleteNodeByCbdbId("SOURCE_NODE_001");
+        neo4jDataService.deleteNodeByCbdbId("TARGET_NODE_001");
     }
 }

@@ -46,7 +46,7 @@ public interface GraphRelationshipRepository extends Neo4jRepository<GraphRelati
      * @param type The relationship type
      * @return Optional containing the relationship if found
      */
-    @Query("MATCH (s:ITEM {cbdb_id: $sourceCbdbId})-[r:$type]->(t:ITEM {cbdb_id: $targetCbdbId}) RETURN s, r, t")
+    @Query("MATCH (s:ITEM {cbdb_id: $sourceCbdbId})-[r:`${type}`]->(t:ITEM {cbdb_id: $targetCbdbId}) RETURN s, r, t LIMIT 1")
     Optional<GraphRelationship> findBySourceAndTargetAndType(
         @Param("sourceCbdbId") String sourceCbdbId, 
         @Param("targetCbdbId") String targetCbdbId, 
@@ -60,7 +60,7 @@ public interface GraphRelationshipRepository extends Neo4jRepository<GraphRelati
      * @param targetCbdbId The CBDB ID of the target node
      * @param type The relationship type
      */
-    @Query("MATCH (s:ITEM {cbdb_id: $sourceCbdbId})-[r:$type]->(t:ITEM {cbdb_id: $targetCbdbId}) DELETE r")
+    @Query("MATCH (s:ITEM {cbdb_id: $sourceCbdbId})-[r:`${type}`]->(t:ITEM {cbdb_id: $targetCbdbId}) DELETE r")
     void deleteBySourceAndTargetAndType(
         @Param("sourceCbdbId") String sourceCbdbId, 
         @Param("targetCbdbId") String targetCbdbId, 
