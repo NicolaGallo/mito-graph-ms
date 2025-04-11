@@ -114,19 +114,6 @@ public class GraphNodeController {
     }
 
     @Tag(name = "Relationship Management")
-    @PostMapping("/relationships/with-properties")
-    @Operation(summary = "Create a relationship with properties")
-    public ResponseEntity<GraphRelationship> createRelationshipWithProperties(
-        @RequestParam String sourceCbdbId, 
-        @RequestParam String targetCbdbId, 
-        @RequestParam String type,
-        @RequestBody Map<String, Object> properties
-    ) {
-        return ResponseEntity.ok(neo4jDataService.createRelationshipWithProperties(
-            sourceCbdbId, targetCbdbId, type, properties));
-    }
-
-    @Tag(name = "Relationship Management")
     @GetMapping("/relationships")
     @Operation(summary = "Get all relationships")
     public ResponseEntity<List<GraphRelationship>> getAllRelationships() {

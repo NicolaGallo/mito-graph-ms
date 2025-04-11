@@ -474,7 +474,7 @@
 					"response": []
 				},
 				{
-					"name": "Create Relationship with Properties",
+					"name": "Create Relationship with Properties[NOT WORKS]",
 					"event": [
 						{
 							"listen": "test",
